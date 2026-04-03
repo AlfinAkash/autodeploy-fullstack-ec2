@@ -57,18 +57,18 @@ jobs:
 
             # Create .env file from secrets
             cat > .env <<EOL
-DB_USER=${{ secrets.DB_USER }}
-DB_PASSWORD=${{ secrets.DB_PASSWORD }}
-DB_NAME=mydb
-DB_HOST=db
-DB_PORT=5432
+  DB_USER=${{ secrets.DB_USER }}
+  DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+  DB_NAME=mydb
+  DB_HOST=db
+  DB_PORT=5432
 
-PORT=5000
-JWT_SECRET=${{ secrets.JWT_SECRET }}
-BACKEND_URL=http://localhost:5000
+  PORT=5000
+  JWT_SECRET=${{ secrets.JWT_SECRET }}
+  BACKEND_URL=http://localhost:5000
 
-FRONTEND_PORT=3000
-VERSION=${{ env.FRONTEND_VERSION }}
+  FRONTEND_PORT=3000
+  VERSION=${{ env.FRONTEND_VERSION }}
 EOL
 
             echo ".env file created."
