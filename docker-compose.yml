@@ -1,0 +1,47 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:15
+    container_name: mydb
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - "${DB_PORT}:5432"
+    volumes:
+      - ./backend/db/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - db_data:/var/lib/postgresql/data
+
+  backend:
+    build: ./backend
+    container_name: backend
+    restart: always
+    env_file:
+      - ./.env
+    environment:
+      DATABASE_URL: postgres://${DB_USER}:${DB_PASSWORD}@db:${DB_PORT}/${DB_NAME}
+      PORT: ${BACKEND_PORT}
+      JWT_SECRET: ${JWT_SECRET}
+    ports:
+      - "${BACKEND_PORT}:5000"
+    depends_on:
+      - db
+
+  frontend:
+    build: ./frontend
+    container_name: frontend
+    restart: always
+    env_file:
+      - ./.env
+    environment:
+      VITE_BACKEND_URL: ${BACKEND_URL}
+    ports:
+      - "${FRONTEND_PORT}:3000"
+    depends_on:
+      - backend
+
+volumes:
+  db_data:
