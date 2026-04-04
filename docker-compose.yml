@@ -51,6 +51,55 @@
 
 # For Testing Purpose Only, Please Ignore This File-----
 
+# version: "3.9"
+
+# services:
+#   db:
+#     image: postgres:15
+#     container_name: mydb
+#     restart: always
+#     environment:
+#       POSTGRES_USER: admin
+#       POSTGRES_PASSWORD: admin123
+#       POSTGRES_DB: mydb
+#     ports:
+#       - "5432:5432"
+#     volumes:
+#       - ./backend/db/init.sql:/docker-entrypoint-initdb.d/init.sql
+#       - db_data:/var/lib/postgresql/data
+#     healthcheck:
+#       test: ["CMD-SHELL", "pg_isready -U admin"]
+#       interval: 5s
+#       retries: 5
+
+#   backend:
+#     build: ./backend
+#     container_name: backend
+#     restart: always
+#     environment:
+#       DATABASE_URL: postgres://admin:admin123@db:5432/mydb
+#       PORT: 5000
+#       JWT_SECRET: your_jwt_secret_here
+#     ports:
+#       - "5000:5000"
+#     depends_on:
+#       db:
+#         condition: service_healthy
+
+#   frontend:
+#     build: ./frontend
+#     container_name: frontend
+#     restart: always
+#     environment:
+#       VITE_BACKEND_URL: http://backend:5000
+#     ports:
+#       - "3000:3000"
+#     depends_on:
+#       - backend
+
+# volumes:
+#   db_data:
+
 version: "3.9"
 
 services:
@@ -65,33 +114,31 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - ./backend/db/init.sql:/docker-entrypoint-initdb.d/init.sql
       - db_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U admin"]
-      interval: 5s
-      retries: 5
 
   backend:
-    build: ./backend
+    image: alfinakash/fullstack-backend:latest
     container_name: backend
     restart: always
     environment:
-      DATABASE_URL: postgres://admin:admin123@db:5432/mydb
+      DB_HOST: db
+      DB_USER: admin
+      DB_PASSWORD: admin123
+      DB_NAME: mydb
+      DB_PORT: 5432
       PORT: 5000
       JWT_SECRET: your_jwt_secret_here
     ports:
       - "5000:5000"
     depends_on:
-      db:
-        condition: service_healthy
+      - db
 
   frontend:
-    build: ./frontend
+    image: alfinakash/fullstack-frontend:latest
     container_name: frontend
     restart: always
     environment:
-      VITE_BACKEND_URL: http://backend:5000
+      VITE_BACKEND_URL: http://13.239.122.252:5000
     ports:
       - "3000:3000"
     depends_on:
