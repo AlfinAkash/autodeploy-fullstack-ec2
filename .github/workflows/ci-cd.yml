@@ -30,7 +30,9 @@ jobs:
       # Build & Push Frontend
       - name: Build & Push Frontend
         run: |
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/fullstack-frontend:${FRONTEND_VERSION} ./frontend
+          docker build \
+            --build-arg VITE_BACKEND_URL=${{ secrets.VITE_BACKEND_URL }} \
+            -t ${{ secrets.DOCKER_USERNAME }}/fullstack-frontend:${FRONTEND_VERSION} ./frontend
           docker push ${{ secrets.DOCKER_USERNAME }}/fullstack-frontend:${FRONTEND_VERSION}
 
       # Build & Push Backend
@@ -116,7 +118,6 @@ jobs:
             sudo docker run -d \
               --name frontend \
               --network fullstack-net \
-              -e VITE_BACKEND_URL=http://$EC2_HOST:5000 \
               -p 3000:3000 \
               $DOCKER_USERNAME/fullstack-frontend:$FRONTEND_VERSION
 
