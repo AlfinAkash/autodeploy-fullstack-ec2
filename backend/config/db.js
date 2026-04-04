@@ -6,7 +6,6 @@ import path from 'path'
 dotenv.config()
 const { Pool } = pkg
 
-// Create DB pool
 export const pool = new Pool({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
@@ -15,16 +14,20 @@ export const pool = new Pool({
   port: process.env.DB_PORT
 })
 
-
 const initDB = async () => {
   try {
-    const sqlPath = path.join(process.cwd(), 'backend', 'db', 'init.sql')
-    const sql = fs.readFileSync(sqlPath, 'utf8')
+    const sqlPath = path.join(process.cwd(), 'db', 'init.sql') 
 
+    if (!fs.existsSync(sqlPath)) {
+      throw new Error(`SQL file not found at path: ${sqlPath}`)
+    }
+
+    const sql = fs.readFileSync(sqlPath, 'utf8')
     await pool.query(sql)
     console.log('✅ Database tables created successfully!')
   } catch (err) {
     console.error('❌ Database initialization error:', err)
+    process.exit(1) 
   }
 }
 
