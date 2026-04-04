@@ -79,7 +79,7 @@ jobs:
 
             # --- Stop & remove all existing containers ---
             echo "🛑 Stopping and removing old containers..."
-            sudo docker compose down --volumes --remove-orphans
+            sudo docker compose down -v --remove-orphans
 
             # --- Pull latest images ---
             echo "📦 Pulling latest Docker images..."
