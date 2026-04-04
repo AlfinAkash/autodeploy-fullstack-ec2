@@ -84,6 +84,7 @@ jobs:
             sudo docker stop mydb || true
             sudo docker rm mydb || true
 
+
             echo "Start Database"
             sudo docker run -d \
               --name mydb \
