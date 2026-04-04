@@ -1,4 +1,4 @@
-name: CI/CD Fullstack Deploy
+name: CI/CD Fullstack Deploy (Versioned)
 
 on:
   push:
@@ -10,98 +10,80 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Checkout code
+      # Checkout
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # 2️⃣ Set app versions
+      # Read versions
       - name: Set app versions
         run: |
           echo "FRONTEND_VERSION=$(cat app-version/frontend.txt)" >> $GITHUB_ENV
           echo "BACKEND_VERSION=$(cat app-version/backend.txt)" >> $GITHUB_ENV
 
-      # 3️⃣ Docker login
+      # Docker login
       - name: Docker login
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_TOKEN }}
 
-      # 4️⃣ Build & Push Frontend
+      # Build & Push Frontend
       - name: Build & Push Frontend
         run: |
-          docker build -t alfinakash/fullstack-frontend:${FRONTEND_VERSION} ./frontend
-          docker push alfinakash/fullstack-frontend:${FRONTEND_VERSION}
-          docker tag alfinakash/fullstack-frontend:${FRONTEND_VERSION} alfinakash/fullstack-frontend:latest
-          docker push alfinakash/fullstack-frontend:latest
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/fullstack-frontend:${FRONTEND_VERSION} ./frontend
+          docker push ${{ secrets.DOCKER_USERNAME }}/fullstack-frontend:${FRONTEND_VERSION}
 
-      # 5️⃣ Build & Push Backend
+      # Build & Push Backend
       - name: Build & Push Backend
         run: |
-          docker build -t alfinakash/fullstack-backend:${BACKEND_VERSION} ./backend
-          docker push alfinakash/fullstack-backend:${BACKEND_VERSION}
-          docker tag alfinakash/fullstack-backend:${BACKEND_VERSION} alfinakash/fullstack-backend:latest
-          docker push alfinakash/fullstack-backend:latest
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/fullstack-backend:${BACKEND_VERSION} ./backend
+          docker push ${{ secrets.DOCKER_USERNAME }}/fullstack-backend:${BACKEND_VERSION}
 
-      # 6️⃣ Deploy to EC2
+      # Deploy to EC2
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v0.1.7
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          port: 22
           script: |
             set -e
-            echo "🚀 Starting deployment on EC2..."
+            echo "Deploying versioned containers..."
 
-            # --- Install Docker if missing ---
-            if ! command -v docker &> /dev/null; then
-              sudo apt update
-              sudo apt install -y docker.io
-              sudo systemctl enable --now docker
-            fi
+            # Create network
+            docker network create fullstack-net || true
 
-            # --- Install legacy docker-compose if missing ---
-            if ! command -v docker-compose &> /dev/null; then
-              sudo curl -L "https://github.com/docker/compose/releases/download/v2.23.1/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-              sudo chmod +x /usr/local/bin/docker-compose
-            fi
+            echo "Pull images"
+            docker pull ${{ secrets.DOCKER_USERNAME }}/fullstack-backend:${BACKEND_VERSION}
+            docker pull ${{ secrets.DOCKER_USERNAME }}/fullstack-frontend:${FRONTEND_VERSION}
 
-            # --- Install Git if missing ---
-            if ! command -v git &> /dev/null; then
-              sudo apt install -y git
-            fi
+            echo "Remove old containers"
+            docker stop backend || true
+            docker rm backend || true
+            docker stop frontend || true
+            docker rm frontend || true
 
-            # --- Clone repo if it doesn't exist ---
-            if [ ! -d "/home/ubuntu/project" ]; then
-              git clone https://github.com/AlfinAkash/autodeploy-fullstack-ec2.git /home/ubuntu/project
-            fi
+            echo "Start Backend"
+            docker run -d \
+              --name backend \
+              --network fullstack-net \
+              -e DB_HOST=mydb \
+              -e DB_USER=${{ secrets.DB_USER }} \
+              -e DB_PASSWORD=${{ secrets.DB_PASSWORD }} \
+              -e DB_NAME=${{ secrets.DB_NAME }} \
+              -e DB_PORT=5432 \
+              -e PORT=5000 \
+              -e JWT_SECRET=${{ secrets.JWT_SECRET }} \
+              -p 5000:5000 \
+              ${{ secrets.DOCKER_USERNAME }}/fullstack-backend:${BACKEND_VERSION}
 
-            cd /home/ubuntu/project
+            echo "Start Frontend"
+            docker run -d \
+              --name frontend \
+              --network fullstack-net \
+              -e VITE_BACKEND_URL=http://${{ secrets.EC2_HOST }}:5000 \
+              -p 3000:3000 \
+              ${{ secrets.DOCKER_USERNAME }}/fullstack-frontend:${FRONTEND_VERSION}
 
-            # --- Reset repo to avoid conflicts ---
-            git reset --hard
-            git clean -fd
-            git pull
-
-            # --- Stop & remove all existing containers & volumes ---
-            echo "🛑 Stopping and removing old containers..."
-            sudo docker-compose down -v
-
-            # --- Pull latest images ---
-            echo "📦 Pulling latest Docker images..."
-            sudo docker-compose pull
-
-            # --- Start containers fresh ---
-            echo "🔄 Starting containers..."
-            sudo docker-compose up -d
-
-            # --- Show status and last logs ---
-            echo "📊 Running containers:"
-            sudo docker ps
-
-            echo "📜 Last logs:"
-            sudo docker-compose logs --tail=20
-
-            echo "✅ Deployment completed successfully!"
+            docker ps
+            echo "Deployment completed"
