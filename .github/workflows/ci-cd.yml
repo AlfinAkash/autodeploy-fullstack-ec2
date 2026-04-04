@@ -81,12 +81,27 @@ jobs:
             sudo docker rm backend || true
             sudo docker stop frontend || true
             sudo docker rm frontend || true
+            sudo docker stop mydb || true
+            sudo docker rm mydb || true
+
+            echo "Start Database"
+            sudo docker run -d \
+              --name mydb \
+              --network fullstack-net \
+              -e POSTGRES_USER=$DB_USER \
+              -e POSTGRES_PASSWORD=$DB_PASSWORD \
+              -e POSTGRES_DB=$DB_NAME \
+              -p 5432:5432 \
+              postgres:15
+
+            echo "Waiting for DB..."
+            sleep 10
 
             echo "Start Backend"
             sudo docker run -d \
               --name backend \
               --network fullstack-net \
-              -e DB_HOST=$DB_HOST \
+              -e DB_HOST=mydb \
               -e DB_USER=$DB_USER \
               -e DB_PASSWORD=$DB_PASSWORD \
               -e DB_NAME=$DB_NAME \
