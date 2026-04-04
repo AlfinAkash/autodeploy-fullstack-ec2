@@ -39,9 +39,19 @@ jobs:
           docker build -t ${{ secrets.DOCKER_USERNAME }}/fullstack-backend:${BACKEND_VERSION} ./backend
           docker push ${{ secrets.DOCKER_USERNAME }}/fullstack-backend:${BACKEND_VERSION}
 
-      # Deploy to EC2
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v0.1.7
+        env:
+          FRONTEND_VERSION: ${{ env.FRONTEND_VERSION }}
+          BACKEND_VERSION: ${{ env.BACKEND_VERSION }}
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
@@ -51,7 +61,6 @@ jobs:
             set -e
             echo "Deploying versioned containers..."
 
-            # Install Docker if not installed
             if ! command -v docker &> /dev/null
             then
               echo "Installing Docker..."
@@ -61,7 +70,6 @@ jobs:
               sudo systemctl enable docker
             fi
 
-            # Create network
             sudo docker network create fullstack-net || true
 
             echo "Pull images"
