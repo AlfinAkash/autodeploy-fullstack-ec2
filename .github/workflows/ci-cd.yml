@@ -50,12 +50,23 @@ jobs:
             set -e
             echo "Deploying versioned containers..."
 
+            # Install Docker if not installed
+            if ! command -v docker &> /dev/null
+            then
+              echo "Docker not found. Installing Docker..."
+              sudo apt update
+              sudo apt install -y docker.io
+              sudo systemctl start docker
+              sudo systemctl enable docker
+              sudo usermod -aG docker ubuntu
+            fi
+
             # Create network
             docker network create fullstack-net || true
 
             echo "Pull images"
-            docker pull ${{ secrets.DOCKER_USERNAME }}/fullstack-backend:${BACKEND_VERSION}
-            docker pull ${{ secrets.DOCKER_USERNAME }}/fullstack-frontend:${FRONTEND_VERSION}
+            docker pull ${DOCKER_USERNAME}/fullstack-backend:${BACKEND_VERSION}
+            docker pull ${DOCKER_USERNAME}/fullstack-frontend:${FRONTEND_VERSION}
 
             echo "Remove old containers"
             docker stop backend || true
@@ -67,23 +78,23 @@ jobs:
             docker run -d \
               --name backend \
               --network fullstack-net \
-              -e DB_HOST=mydb \
-              -e DB_USER=${{ secrets.DB_USER }} \
-              -e DB_PASSWORD=${{ secrets.DB_PASSWORD }} \
-              -e DB_NAME=${{ secrets.DB_NAME }} \
+              -e DB_HOST=${DB_HOST} \
+              -e DB_USER=${DB_USER} \
+              -e DB_PASSWORD=${DB_PASSWORD} \
+              -e DB_NAME=${DB_NAME} \
               -e DB_PORT=5432 \
               -e PORT=5000 \
-              -e JWT_SECRET=${{ secrets.JWT_SECRET }} \
+              -e JWT_SECRET=${JWT_SECRET} \
               -p 5000:5000 \
-              ${{ secrets.DOCKER_USERNAME }}/fullstack-backend:${BACKEND_VERSION}
+              ${DOCKER_USERNAME}/fullstack-backend:${BACKEND_VERSION}
 
             echo "Start Frontend"
             docker run -d \
               --name frontend \
               --network fullstack-net \
-              -e VITE_BACKEND_URL=http://${{ secrets.EC2_HOST }}:5000 \
+              -e VITE_BACKEND_URL=http://${EC2_HOST}:5000 \
               -p 3000:3000 \
-              ${{ secrets.DOCKER_USERNAME }}/fullstack-frontend:${FRONTEND_VERSION}
+              ${DOCKER_USERNAME}/fullstack-frontend:${FRONTEND_VERSION}
 
             docker ps
             echo "Deployment completed"
