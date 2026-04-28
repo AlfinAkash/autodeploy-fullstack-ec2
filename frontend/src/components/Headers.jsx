@@ -11,7 +11,7 @@ const Header = ({ token, setToken, navigate }) => {
   return (
     <AppBar position="static">
       <Toolbar style={{ display: "flex", justifyContent: "space-between" }}>
-        <Typography variant="h6">Tiara Cloud Control Application</Typography>
+        <Typography variant="h6"> Cloud Control Application</Typography>
 
         <div>
           <Button color="inherit" onClick={() => navigate("/")}>
