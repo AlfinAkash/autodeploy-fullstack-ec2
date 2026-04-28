@@ -81,15 +81,18 @@ jobs:
             sudo docker stop mydb || true
             sudo docker rm mydb || true
 
+            echo "Create DB volume (IMPORTANT)"
+            sudo docker volume create pgdata || true
 
             echo "Start Database"
             sudo docker run -d \
               --name mydb \
               --network fullstack-net \
+              --restart always \
               -e POSTGRES_USER=$DB_USER \
               -e POSTGRES_PASSWORD=$DB_PASSWORD \
               -e POSTGRES_DB=$DB_NAME \
-              -p 5432:5432 \
+              -v pgdata:/var/lib/postgresql/data \
               postgres:15
 
             echo "Waiting for DB..."
@@ -99,6 +102,7 @@ jobs:
             sudo docker run -d \
               --name backend \
               --network fullstack-net \
+              --restart always \
               -e DB_HOST=mydb \
               -e DB_USER=$DB_USER \
               -e DB_PASSWORD=$DB_PASSWORD \
@@ -113,6 +117,7 @@ jobs:
             sudo docker run -d \
               --name frontend \
               --network fullstack-net \
+              --restart always \
               -p 3000:3000 \
               $DOCKER_USERNAME/fullstack-frontend:$FRONTEND_VERSION
 
