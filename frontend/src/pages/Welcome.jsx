@@ -29,7 +29,7 @@ const Welcome = () => {
     
           <Box sx={{ flex: 1 }}>
             <Typography variant="h3" fontWeight="bold" gutterBottom>
-              Welcome to My Application - Your Gateway to Efficient User Management
+              Welcome to My Application
             </Typography>
 
             <Typography variant="h6" sx={{ opacity: 0.9, mb: 3 }}>
